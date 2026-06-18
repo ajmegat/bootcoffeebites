@@ -38,7 +38,6 @@
         .toast { animation: slideIn 0.3s ease, fadeOut 0.4s ease 2.6s forwards; }
         @keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; pointer-events: none; } }
-        /* image preview grid */
         .img-thumb { position: relative; }
         .img-thumb .remove-img { display: none; }
         .img-thumb:hover .remove-img { display: flex; }
@@ -57,16 +56,12 @@
             </div>
             <div class="bg-white border border-boot-border rounded-2xl p-8 shadow-sm space-y-5">
                 <div>
-                    <label class="block text-xs uppercase tracking-widest text-boot-gray font-semibold mb-2">Email</label>
-                    <input type="email" id="login-email" class="w-full border border-boot-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-boot-dark" placeholder="you@email.com">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase tracking-widest text-boot-gray font-semibold mb-2">Password</label>
-                    <input type="password" id="login-password" class="w-full border border-boot-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-boot-dark" placeholder="••••••••">
+                    <label class="block text-xs uppercase tracking-widest text-boot-gray font-semibold mb-2">Admin Password</label>
+                    <input type="password" id="login-password" class="w-full border border-boot-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-boot-dark" placeholder="••••••••" autofocus>
                 </div>
                 <div id="login-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3"></div>
                 <button onclick="doLogin()" class="w-full bg-boot-dark hover:bg-boot-accent text-white py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-colors">
-                    Sign In
+                    Unlock Dashboard
                 </button>
             </div>
             <p class="text-center text-[11px] text-boot-gray">
@@ -282,16 +277,22 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_WNgsbEMcqAzfcBDXx5iKxA_VVJD02_V';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const STORAGE_BUCKET = 'product-images'; // create this bucket in Supabase Storage
+        const STORAGE_BUCKET = 'product-images'; 
+
+        // ============================================================
+        // ADMIN SYSTEM EMAIL
+        // ============================================================
+        // Create an account with this exact email in your Supabase Auth dashboard
+        const ADMIN_SYSTEM_EMAIL = 'jvcgzb@gmail.com';
 
         // ============================================================
         // STATE
         // ============================================================
         let allProducts = [];
         let currentFilter = 'all';
-        let editingId = null;         // null = add mode, string = edit mode
-        let pendingFiles = [];         // File objects waiting to be uploaded
-        let existingImageUrls = [];    // Already-saved URLs (in edit mode)
+        let editingId = null;         
+        let pendingFiles = [];         
+        let existingImageUrls = [];    
 
         // ============================================================
         // AUTH
@@ -302,15 +303,31 @@
         }
 
         async function doLogin() {
-            const email = document.getElementById('login-email').value.trim();
             const pass  = document.getElementById('login-password').value;
             const errEl = document.getElementById('login-error');
+            const loginBtn = document.querySelector('#screen-login button');
+            
             errEl.classList.add('hidden');
-
-            const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-            if (error) {
-                errEl.innerText = error.message;
+            
+            if (!pass) {
+                errEl.innerText = 'Please enter your password.';
                 errEl.classList.remove('hidden');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Unlocking...';
+
+            const { error } = await supabase.auth.signInWithPassword({ 
+                email: ADMIN_SYSTEM_EMAIL, 
+                password: pass 
+            });
+
+            if (error) {
+                errEl.innerText = 'Incorrect password. Please try again.';
+                errEl.classList.remove('hidden');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = 'Unlock Dashboard';
             } else {
                 showDashboard();
             }
@@ -318,6 +335,10 @@
 
         async function doLogout() {
             await supabase.auth.signOut();
+            document.getElementById('login-password').value = '';
+            const loginBtn = document.querySelector('#screen-login button');
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = 'Unlock Dashboard';
             document.getElementById('screen-dashboard').classList.add('hidden');
             document.getElementById('screen-login').classList.remove('hidden');
         }
@@ -493,7 +514,6 @@
             document.getElementById('f-details').value  = p.details || '';
             document.getElementById('f-available').checked = !!p.is_available;
 
-            // Load existing images
             const imgs = (p.images && p.images.length) ? p.images : (p.image_url ? [p.image_url] : []);
             existingImageUrls = [...imgs];
             renderPreviewGrid();
@@ -510,7 +530,6 @@
                 showFormError(`You can only add ${allowed} more image(s). Max 5 total.`);
                 return;
             }
-            // Validate size
             for (const f of files) {
                 if (f.size > 2 * 1024 * 1024) {
                     showFormError(`"${f.name}" exceeds 2MB. Please compress it first.`);
@@ -559,7 +578,6 @@
             renderPreviewGrid();
         }
 
-        // Drag and drop on dropzone
         const dropZone = document.getElementById('drop-zone');
         dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -568,7 +586,6 @@
             dropZone.classList.remove('drag-over');
             const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
             if (files.length) {
-                // simulate file input change
                 pendingFiles = [...pendingFiles, ...files].slice(0, 5 - existingImageUrls.length);
                 renderPreviewGrid();
             }
@@ -619,7 +636,6 @@
             const details  = document.getElementById('f-details').value.trim();
             const avail    = document.getElementById('f-available').checked;
 
-            // Validation
             if (!name)     { showFormError('Item name is required.'); return; }
             if (!category) { showFormError('Please select a category.'); return; }
             if (isNaN(price) || price < 0) { showFormError('Enter a valid price.'); return; }
@@ -645,7 +661,7 @@
                     details,
                     is_available: avail,
                     images: imageUrls,
-                    image_url: imageUrls[0] || null,  // convenience column for quick access
+                    image_url: imageUrls[0] || null,  
                 };
 
                 let error;
@@ -709,12 +725,10 @@
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        // Enter key on login
         document.getElementById('login-password').addEventListener('keydown', e => {
             if (e.key === 'Enter') doLogin();
         });
 
-        // Close modal on backdrop click
         document.getElementById('modal-backdrop').addEventListener('click', e => {
             if (e.target === document.getElementById('modal-backdrop')) closeForm();
         });
