@@ -347,7 +347,7 @@
         // ============================================================
         const SUPABASE_URL = 'https://bsnqjhduecqidjdlgupl.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_WNgsbEMcqAzfcBDXx5iKxA_VVJD02_V';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
         // APP CONFIG
@@ -396,7 +396,7 @@
         // ============================================================
         async function loadProducts() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('products')
                     .select('*')
                     .eq('is_available', true)
