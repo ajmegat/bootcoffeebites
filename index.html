@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BŌOT Coffee & Bites - Grab & Go</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        shopify: {
+                            bg: '#FAF8F5',
+                            dark: '#1C1C1C',
+                            gray: '#6E6E6E',
+                            border: '#E3DFD5',
+                            accent: '#7D6E57'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FAF8F5; }
+        .view-page { transition: opacity 0.25s ease-in-out; }
+        .view-page.hidden { display: none; opacity: 0; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* FIX: form-error-msg was using both hidden class and flex, causing conflict */
+        .error-box { display: none; }
+        .error-box.show { display: flex; }
+    </style>
+</head>
+<body class="text-shopify-dark antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- Announcement Bar -->
+    <div class="bg-shopify-dark text-white text-[10px] md:text-[11px] tracking-widest uppercase py-2.5 px-4 text-center font-medium sticky top-0 z-50">
+        🚗 Derica Residence Car-Boot (Infront of Bila Bila Mart) | Mon-Fri 6:00 AM - 7:00 AM | Pre-order by 8 PM
+    </div>
+
+    <header class="border-b border-shopify-border bg-white/95 backdrop-blur-md sticky top-[32px] md:top-[36px] z-40 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between py-5 border-b border-shopify-border/50">
+                <div class="flex items-center space-x-4">
+                    <a href="https://www.threads.net/@bootcoffeebites" target="_blank" rel="noopener noreferrer" class="text-shopify-dark hover:text-shopify-accent transition-colors" title="Follow us on Threads">
+                        <i class="fa-brands fa-threads text-lg"></i>
+                    </a>
+                </div>
+                <div class="text-center">
+                    <!-- FIX: href="#" + onclick can cause double navigation; use only onclick -->
+                    <div onclick="navigate('shop')" class="inline-block cursor-pointer">
+                        <h1 class="font-serif text-2xl md:text-3xl font-semibold tracking-tight text-shopify-dark">BŌOT COFFEE</h1>
+                        <p class="text-[9px] uppercase tracking-[0.25em] text-shopify-gray -mt-1">Coffee, Bites & Fuel</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button onclick="navigate('preorder')" class="relative text-shopify-dark hover:text-shopify-accent transition-colors" title="Your Pre-order">
+                        <i class="fa-solid fa-shopping-bag text-lg"></i>
+                        <span id="cart-badge" class="absolute -top-1.5 -right-1.5 bg-shopify-accent text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold hidden">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <nav class="flex justify-center overflow-x-auto no-scrollbar py-3.5 space-x-8 md:space-x-12 text-xs uppercase tracking-[0.15em] font-medium">
+                <button onclick="navigate('shop')" id="nav-shop" class="nav-link text-shopify-dark border-b border-shopify-dark pb-1 transition-all">Shop</button>
+                <button onclick="navigate('how-to')" id="nav-how-to" class="nav-link text-shopify-gray hover:text-shopify-dark pb-1 transition-all">How to Pick Up</button>
+                <button onclick="navigate('location')" id="nav-location" class="nav-link text-shopify-gray hover:text-shopify-dark pb-1 transition-all">Our Location</button>
+                <button onclick="navigate('preorder')" id="nav-preorder" class="nav-link text-shopify-gray hover:text-shopify-dark pb-1 transition-all flex items-center gap-1.5">
+                    Pre-Order <span class="text-[10px] text-shopify-accent" id="nav-cart-count"></span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+
+        <!-- VIEW 1: SHOP -->
+        <div id="page-shop" class="view-page space-y-8">
+            <div class="bg-[#F2EDE2] rounded-2xl p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 border border-shopify-border/40">
+                <div class="max-w-xl space-y-3 text-center md:text-left">
+                    <span class="inline-block bg-white text-shopify-dark text-[9px] tracking-widest uppercase font-bold px-2.5 py-1 rounded">🚗 DRIVE-THRU FROM YOUR CAR</span>
+                    <h2 class="font-serif text-2xl md:text-4xl font-medium tracking-tight leading-tight">
+                        Frictionless morning fuel on <span class="italic text-shopify-accent">your way out</span>
+                    </h2>
+                    <p class="text-shopify-gray text-xs md:text-sm leading-relaxed">
+                        Pre-order by 8 PM. Grab your coffee & fresh bites instantly through your car window in front of Bila Bila Mart, Derica Residence. Strictly 6:00 AM - 7:00 AM daily.
+                    </p>
+                    <div class="pt-2 flex flex-wrap justify-center md:justify-start gap-4 text-xs font-semibold">
+                        <button onclick="navigate('how-to')" class="text-shopify-dark hover:text-shopify-accent underline underline-offset-4 tracking-wider uppercase">How does this work? &rarr;</button>
+                    </div>
+                </div>
+                <div class="hidden md:flex bg-white p-5 rounded-xl border border-shopify-border flex-col justify-center text-center max-w-xs shadow-sm">
+                    <div class="w-10 h-10 bg-[#F2EDE2] text-shopify-accent flex items-center justify-center rounded-full text-lg mx-auto mb-3">
+                        <i class="fa-solid fa-car-rear"></i>
+                    </div>
+                    <h3 class="font-serif text-sm font-semibold text-shopify-dark">Pre-order Hub</h3>
+                    <p class="text-[11px] text-shopify-gray mt-1 leading-normal">
+                        Select food and coffee, enter vehicle details, and pre-generate your WhatsApp request instantly.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-emerald-50 border border-emerald-200/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-800">
+                <div class="flex items-start sm:items-center gap-3">
+                    <span class="text-xl leading-none mt-0.5 sm:mt-0">🌍</span>
+                    <div>
+                        <strong class="font-semibold block sm:inline text-emerald-900">Bring Your Own Tumbler (BYOT) Program!</strong>
+                        <span class="text-[11px] sm:text-xs">Save <strong class="text-emerald-900">RM 0.50</strong> on every beverage or combo in your cart when you bring a clean cup.</span>
+                    </div>
+                </div>
+                <span class="inline-block self-start sm:self-auto bg-emerald-700 text-white text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded">Eco Initiative</span>
+            </div>
+
+            <div>
+                <div class="flex flex-col md:flex-row md:items-end justify-between border-b border-shopify-border pb-4 mb-6 gap-4">
+                    <div>
+                        <h3 class="font-serif text-xl md:text-2xl font-semibold">The Morning Lineup</h3>
+                        <p class="text-[11px] text-shopify-gray uppercase tracking-widest mt-1">Tap/Click images to cycle product views</p>
+                    </div>
+                    <div class="flex space-x-1.5 overflow-x-auto no-scrollbar py-1">
+                        <button onclick="filterCategory('all')" id="tab-all" class="category-tab px-3.5 py-1.5 text-[10px] uppercase tracking-wider font-semibold border border-shopify-dark bg-shopify-dark text-white rounded transition-all">All Items</button>
+                        <button onclick="filterCategory('combos')" id="tab-combos" class="category-tab px-3.5 py-1.5 text-[10px] uppercase tracking-wider font-semibold border border-shopify-border text-shopify-gray bg-white rounded hover:border-shopify-dark hover:text-shopify-dark transition-all">Combos</button>
+                        <button onclick="filterCategory('coffee')" id="tab-coffee" class="category-tab px-3.5 py-1.5 text-[10px] uppercase tracking-wider font-semibold border border-shopify-border text-shopify-gray bg-white rounded hover:border-shopify-dark hover:text-shopify-dark transition-all">Coffee</button>
+                        <button onclick="filterCategory('breakfast')" id="tab-breakfast" class="category-tab px-3.5 py-1.5 text-[10px] uppercase tracking-wider font-semibold border border-shopify-border text-shopify-gray bg-white rounded hover:border-shopify-dark hover:text-shopify-dark transition-all">Bites</button>
+                    </div>
+                </div>
+
+                <!-- Loading state -->
+                <div id="product-loading" class="text-center py-16 text-shopify-gray">
+                    <i class="fa-solid fa-mug-hot text-3xl text-shopify-border mb-3 block animate-pulse"></i>
+                    <p class="text-xs uppercase tracking-widest">Loading menu...</p>
+                </div>
+
+                <!-- Products Grid -->
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12"></div>
+
+                <!-- Empty state -->
+                <div id="product-empty" class="hidden text-center py-16 text-shopify-gray">
+                    <i class="fa-solid fa-circle-exclamation text-3xl text-shopify-border mb-3 block"></i>
+                    <p class="text-xs uppercase tracking-widest">No items in this category right now.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: HOW TO PICK UP -->
+        <div id="page-how-to" class="view-page hidden space-y-10 max-w-4xl mx-auto">
+            <div class="text-center space-y-2">
+                <h2 class="font-serif text-3xl font-semibold">How Our Grab & Go Works</h2>
+                <p class="text-shopify-gray text-xs uppercase tracking-wider">High-speed service optimized for busy Damansara Perdana residents</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 pt-4">
+                <div class="bg-white border border-shopify-border p-6 rounded-xl flex flex-col items-center text-center relative shadow-sm">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-shopify-dark text-white rounded-full flex items-center justify-center font-bold text-xs">1</span>
+                    <div class="text-shopify-accent text-2xl mb-3 pt-3"><i class="fa-solid fa-mobile-screen"></i></div>
+                    <h3 class="font-serif text-base font-semibold mb-2">Build Your Cart</h3>
+                    <p class="text-shopify-gray text-xs leading-relaxed">Choose your items on the <strong class="text-shopify-dark">Shop</strong> tab, then navigate to our <strong class="text-shopify-dark">Pre-Order</strong> scheduler.</p>
+                </div>
+                <div class="bg-white border border-shopify-border p-6 rounded-xl flex flex-col items-center text-center relative shadow-sm">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-shopify-dark text-white rounded-full flex items-center justify-center font-bold text-xs">2</span>
+                    <div class="text-shopify-accent text-2xl mb-3 pt-3"><i class="fa-solid fa-qrcode"></i></div>
+                    <h3 class="font-serif text-base font-semibold mb-2">Pay & Share Details</h3>
+                    <p class="text-shopify-gray text-xs leading-relaxed">Review your vehicle type and schedule a 5-minute pickup block. Click checkout to send details and initiate DuitNow payment.</p>
+                </div>
+                <div class="bg-white border border-shopify-border p-6 rounded-xl flex flex-col items-center text-center relative shadow-sm">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-shopify-dark text-white rounded-full flex items-center justify-center font-bold text-xs">3</span>
+                    <div class="text-shopify-accent text-2xl mb-3 pt-3"><i class="fa-solid fa-handshake-angle"></i></div>
+                    <h3 class="font-serif text-base font-semibold mb-2">The 5-Second Handoff</h3>
+                    <p class="text-shopify-gray text-xs leading-relaxed">Drive down the exit slowly. We recognize your car instantly, hand over your order directly through your window, and you're off!</p>
+                </div>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 space-y-4">
+                <h4 class="font-serif text-base font-semibold text-amber-900 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-amber-700"></i> Crucial Ground Rules
+                </h4>
+                <ul class="text-xs text-amber-800 space-y-2.5 list-disc pl-5">
+                    <li><strong>Order Deadline:</strong> Pre-orders must be submitted and paid by <strong>8:00 PM the night before</strong>.</li>
+                    <li><strong>Hard Stop 7:00 AM:</strong> Our boot closes strictly at 7:00 AM. Uncollected orders past 7:00 AM are non-refundable.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- VIEW 3: OUR LOCATION -->
+        <div id="page-location" class="view-page hidden space-y-10 max-w-5xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-10 items-center">
+                <div class="space-y-4">
+                    <span class="text-shopify-accent text-xs font-semibold uppercase tracking-wider block"><i class="fa-solid fa-map-pin"></i> Driver Guide</span>
+                    <h2 class="font-serif text-2xl md:text-3xl font-bold leading-tight">Spot us in front of the Bila Bila Mart, Derica Residence.</h2>
+                    <p class="text-shopify-gray text-xs md:text-sm leading-relaxed">We park directly in front of the Bila Bila Mart convenience grocer at Derica Residence.</p>
+                    <p class="text-shopify-gray text-xs md:text-sm leading-relaxed">Look out for our signature open <strong>black car boot</strong>. We park in a designated safe bay that allows you to pause for 5 seconds without obstructing the main flow of traffic.</p>
+                    <div class="p-4 bg-white rounded-xl border border-shopify-border space-y-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-shopify-dark flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock text-shopify-accent"></i> Peak Hours Warning
+                        </h4>
+                        <p class="text-[11px] text-shopify-gray leading-normal">Traffic gets fully locked from 7:00 AM to 8:30 AM on the exit corridor. Operating early means we only operate from <strong>6:00 AM to 7:00 AM</strong>. Getting your coffee & bites from us at 6:30 AM helps you clear the bottleneck before the mass rush!</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-shopify-border p-5 shadow-sm">
+                    <h3 class="font-serif text-sm font-semibold text-center mb-3">Drop-off Zone Flow</h3>
+                    <div class="relative w-full aspect-[4/3] bg-neutral-100 border border-neutral-200 rounded-lg flex items-center justify-center overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                        <div class="w-full h-full p-4 flex flex-col justify-between text-[10px] relative select-none">
+                            <div class="text-center font-bold text-neutral-400 bg-white/80 py-1 rounded shadow-sm">Derica Residence Towers & Commercial G-Floor</div>
+                            <div class="absolute inset-x-0 top-1/3 bottom-1/3 bg-neutral-300 transform -skew-y-3 flex items-center justify-between px-8">
+                                <span class="font-bold text-[9px] text-neutral-500 uppercase tracking-wide">◄ OUTBOUND FLOW</span>
+                                <span class="font-bold text-[9px] text-neutral-500 uppercase tracking-wide">TO LDP / PENCHALA LINK ►</span>
+                            </div>
+                            <div class="absolute left-[45%] top-[40%] -translate-x-1/2 z-10">
+                                <div class="bg-red-600 text-white font-bold text-[8px] md:text-[9px] px-2.5 py-1.5 rounded shadow-lg flex items-center gap-1 animate-pulse">
+                                    <i class="fa-solid fa-car-rear"></i> In front of Bila Bila Mart
+                                </div>
+                            </div>
+                            <div class="text-center font-medium text-[9px] text-neutral-400 bg-white/80 py-1 rounded shadow-sm">Lay-by Drop-off Lane (Jalan PJU 8/8)</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2 justify-center text-[10px]">
+                        <span class="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2 py-0.5 rounded border border-red-100">
+                            <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span> Active Hand-off Spot
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: PRE-ORDER -->
+        <div id="page-preorder" class="view-page hidden max-w-2xl mx-auto space-y-8">
+            <div class="text-center space-y-2">
+                <h2 class="font-serif text-3xl font-semibold">Your Pre-Order Scheduler</h2>
+                <p class="text-shopify-gray text-xs uppercase tracking-wider">Fill in car details & finalize pickup window</p>
+            </div>
+
+            <div class="bg-white border border-shopify-border rounded-xl p-5 shadow-sm space-y-4">
+                <h3 class="font-serif text-base font-semibold border-b border-shopify-border pb-2 flex justify-between items-center">
+                    <span>1. Selected Items</span>
+                    <button onclick="clearCart()" class="text-xs text-red-600 hover:underline font-sans font-normal uppercase tracking-wider">Clear all</button>
+                </h3>
+                <div id="cart-items-list" class="divide-y divide-shopify-border/50"></div>
+
+                <div id="byo-section" class="pt-3 border-t border-shopify-border/50 hidden">
+                    <label class="flex items-start gap-3 cursor-pointer text-xs text-shopify-dark py-1">
+                        <input type="checkbox" id="byo-tumbler" onchange="toggleByoTumbler()" class="rounded border-shopify-border text-shopify-accent focus:ring-shopify-accent w-4 h-4 mt-0.5">
+                        <div>
+                            <span class="font-semibold block">I will bring my own clean tumbler/cup 🌍</span>
+                            <span class="text-shopify-gray text-[11px]">Get RM0.50 eco-discount per beverage in your cart!</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="discount-row" class="hidden flex justify-between items-center text-xs font-semibold text-emerald-700 pt-1 border-t border-dashed border-shopify-border/60">
+                    <span>Eco-Tumbler Discount (-RM0.50 x <span id="discount-count">0</span>):</span>
+                    <span id="discount-amount">-RM 0.00</span>
+                </div>
+
+                <div class="flex justify-between items-center pt-3 font-serif font-bold text-lg border-t border-shopify-border">
+                    <span>Estimated Total:</span>
+                    <span id="cart-total-price">RM 0.00</span>
+                </div>
+            </div>
+
+            <div class="bg-white border border-shopify-border rounded-xl p-5 shadow-sm space-y-4">
+                <h3 class="font-serif text-base font-semibold border-b border-shopify-border pb-2">2. Driver & Vehicle Details</h3>
+
+                <!-- FIX: removed conflicting hidden+flex classes; using custom error-box class -->
+                <div id="form-error-msg" class="error-box bg-red-50 text-red-800 border border-red-200 text-xs p-3 rounded-lg items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-red-600 flex-shrink-0"></i>
+                    <span id="form-error-text">Please add at least one item to your pre-order before sending.</span>
+                </div>
+
+                <!-- FIX: changed to div-based form to avoid accidental native submit on mobile -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <label class="block text-shopify-gray uppercase tracking-wider font-semibold mb-1.5">Your Name *</label>
+                        <input type="text" id="cust-name" class="w-full border border-shopify-border rounded p-2.5 focus:outline-none focus:border-shopify-dark" placeholder="e.g. Amira">
+                    </div>
+                    <div>
+                        <label class="block text-shopify-gray uppercase tracking-wider font-semibold mb-1.5">Vehicle Model & Color *</label>
+                        <input type="text" id="cust-car" class="w-full border border-shopify-border rounded p-2.5 focus:outline-none focus:border-shopify-dark" placeholder="e.g. Black Myvi">
+                    </div>
+                    <div>
+                        <label class="block text-shopify-gray uppercase tracking-wider font-semibold mb-1.5">License Plate *</label>
+                        <input type="text" id="cust-plate" class="w-full border border-shopify-border rounded p-2.5 focus:outline-none focus:border-shopify-dark" placeholder="e.g. VAA 1234">
+                    </div>
+                    <div>
+                        <label class="block text-shopify-gray uppercase tracking-wider font-semibold mb-1.5">Target Pickup Time *</label>
+                        <select id="pickup-time" class="w-full border border-shopify-border bg-white rounded p-2.5 focus:outline-none focus:border-shopify-dark">
+                            <option value="">-- Choose Pickup Window --</option>
+                            <option value="6:00 AM">6:00 AM</option>
+                            <option value="6:05 AM">6:05 AM</option>
+                            <option value="6:10 AM">6:10 AM</option>
+                            <option value="6:15 AM">6:15 AM</option>
+                            <option value="6:20 AM">6:20 AM</option>
+                            <option value="6:25 AM">6:25 AM</option>
+                            <option value="6:30 AM">6:30 AM</option>
+                            <option value="6:35 AM">6:35 AM</option>
+                            <option value="6:40 AM">6:40 AM</option>
+                            <option value="6:45 AM">6:45 AM</option>
+                            <option value="6:50 AM">6:50 AM</option>
+                            <option value="6:55 AM">6:55 AM</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2 pt-4">
+                        <button onclick="generateWhatsAppOrder()" class="w-full bg-shopify-dark hover:bg-shopify-accent text-white py-3.5 px-4 rounded text-xs font-semibold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-sm text-[#25D366]"></i> Send & Confirm via WhatsApp
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-shopify-border bg-white py-10 mt-16 text-center text-xs text-shopify-gray">
+        <div class="max-w-7xl mx-auto px-4 space-y-4">
+            <h4 class="font-serif text-base font-semibold text-shopify-dark tracking-widest">BŌOT COFFEE & BITES</h4>
+            <p class="max-w-md mx-auto text-[11px] leading-relaxed text-shopify-gray">Empowering the early-bird workforce with premium morning caffeine, fresh bites, and zero-waste sustainable morning habits.</p>
+            <div class="flex justify-center space-x-6 pt-1 text-[11px]">
+                <a href="https://www.threads.net/@bootcoffeebites" target="_blank" rel="noopener noreferrer" class="text-shopify-dark hover:text-shopify-accent transition-colors flex items-center gap-1.5 font-medium">
+                    <i class="fa-brands fa-threads text-base"></i> @bootcoffeebites
+                </a>
+            </div>
+            <div class="border-t border-shopify-border/50 pt-5 mt-5 flex flex-col md:flex-row items-center justify-between text-[10px] text-shopify-gray gap-3">
+                <p>&copy; 2026 BŌOT Coffee & Bites. All rights reserved.</p>
+                <div class="flex gap-4">
+                    <button onclick="navigate('how-to')" class="hover:text-shopify-dark transition-colors">How it works</button>
+                    <span>&middot;</span>
+                    <button onclick="navigate('location')" class="hover:text-shopify-dark transition-colors">Our location</button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================================
+        // SUPABASE CONFIG — replace these values with your project's
+        // ============================================================
+        const SUPABASE_URL = 'https://ajmegat.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_WNgsbEMcqAzfcBDXx5iKxA_VVJD02_V';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================================
+        // APP CONFIG
+        // ============================================================
+        const WHATSAPP_NUMBER = '60116162804';
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        let products = [];           // loaded from Supabase
+        let currentCategory = 'all';
+        let carouselStates = {};
+        let cart = {};               // productId -> qty
+        let byoTumblerSelected = false;
+
+        // ============================================================
+        // ROUTER
+        // ============================================================
+        function navigate(pageId) {
+            window.location.hash = pageId;
+            document.querySelectorAll('.view-page').forEach(p => p.classList.add('hidden'));
+            const target = document.getElementById(`page-${pageId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('text-shopify-dark', 'border-b', 'border-shopify-dark');
+                link.classList.add('text-shopify-gray');
+            });
+            const activeNav = document.getElementById(`nav-${pageId}`);
+            if (activeNav) {
+                activeNav.classList.remove('text-shopify-gray');
+                activeNav.classList.add('text-shopify-dark', 'border-b', 'border-shopify-dark');
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (pageId === 'preorder') renderPreorderCart();
+        }
+
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '') || 'shop';
+            navigate(hash);
+        });
+
+        // ============================================================
+        // SUPABASE: LOAD PRODUCTS
+        // ============================================================
+        async function loadProducts() {
+            try {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('is_available', true)
+                    .order('sort_order', { ascending: true });
+
+                if (error) throw error;
+
+                products = data.map(p => ({
+                    ...p,
+                    // Support both single image_url string and images array from DB
+                    images: p.images && p.images.length ? p.images : [p.image_url].filter(Boolean)
+                }));
+
+                products.forEach(p => { carouselStates[p.id] = 0; });
+
+                document.getElementById('product-loading').classList.add('hidden');
+                renderProducts();
+
+            } catch (err) {
+                console.error('Failed to load products:', err);
+                document.getElementById('product-loading').innerHTML = `
+                    <i class="fa-solid fa-circle-exclamation text-3xl text-red-300 mb-3 block"></i>
+                    <p class="text-xs text-red-500 uppercase tracking-widest">Could not load menu. Please refresh.</p>
+                `;
+            }
+        }
+
+        // ============================================================
+        // CATEGORY FILTER
+        // ============================================================
+        function filterCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('bg-shopify-dark', 'text-white', 'border-shopify-dark');
+                tab.classList.add('text-shopify-gray', 'bg-white', 'border-shopify-border');
+            });
+            const activeTab = document.getElementById(`tab-${category}`);
+            if (activeTab) {
+                activeTab.classList.remove('text-shopify-gray', 'bg-white', 'border-shopify-border');
+                activeTab.classList.add('bg-shopify-dark', 'text-white', 'border-shopify-dark');
+            }
+            renderProducts();
+        }
+
+        // ============================================================
+        // IMAGE CAROUSEL
+        // ============================================================
+        function cycleImage(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product || product.images.length <= 1) return;
+
+            const nextIdx = (carouselStates[productId] + 1) % product.images.length;
+            carouselStates[productId] = nextIdx;
+
+            const imgEl = document.getElementById(`img-${productId}`);
+            const dotsEl = document.getElementById(`dots-${productId}`);
+
+            if (imgEl) imgEl.src = product.images[nextIdx];
+
+            if (dotsEl) {
+                Array.from(dotsEl.children).forEach((dot, i) => {
+                    dot.className = i === nextIdx
+                        ? 'w-1.5 h-1.5 rounded-full bg-white transition-all duration-300'
+                        : 'w-1 h-1 rounded-full bg-white/40 hover:bg-white/60 transition-all duration-300';
+                });
+            }
+        }
+
+        // ============================================================
+        // RENDER PRODUCTS
+        // ============================================================
+        function renderProducts() {
+            const grid = document.getElementById('product-grid');
+            const emptyEl = document.getElementById('product-empty');
+            if (!grid) return;
+
+            const filtered = currentCategory === 'all'
+                ? products
+                : products.filter(p => p.category === currentCategory);
+
+            grid.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+            emptyEl.classList.add('hidden');
+
+            filtered.forEach(p => {
+                const idx = carouselStates[p.id] || 0;
+                const hasMulti = p.images.length > 1;
+
+                let dotsHtml = '';
+                if (hasMulti) {
+                    p.images.forEach((_, i) => {
+                        dotsHtml += `<span class="${i === idx ? 'w-1.5 h-1.5 bg-white' : 'w-1 h-1 bg-white/40'} rounded-full transition-all duration-300"></span>`;
+                    });
+                }
+
+                // FIX: use data-id attribute + event delegation to avoid inline onclick with special chars
+                grid.innerHTML += `
+                    <div class="group flex flex-col justify-between border border-shopify-border/20 p-4 rounded-xl bg-white hover:shadow-sm transition-all duration-300">
+                        <div class="relative overflow-hidden bg-neutral-100 rounded-lg cursor-pointer aspect-square" onclick="cycleImage('${p.id}')">
+                            <img id="img-${p.id}" src="${p.images[idx] || ''}" alt="${escHtml(p.name)}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 select-none" loading="lazy" onerror="this.src='https://placehold.co/400x400/F2EDE2/7D6E57?text=No+Image'">
+                            ${p.badge ? `<span class="absolute top-2.5 left-2.5 bg-shopify-dark text-white text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">${escHtml(p.badge)}</span>` : ''}
+                            ${hasMulti ? `<div id="dots-${p.id}" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/20 px-2 py-1 rounded-full backdrop-blur-[1px]">${dotsHtml}</div>` : ''}
+                        </div>
+                        <div class="space-y-2 flex-1 flex flex-col justify-between pt-4">
+                            <div>
+                                <div class="flex justify-between items-start gap-2">
+                                    <h4 class="font-semibold text-xs md:text-sm text-shopify-dark tracking-tight leading-snug group-hover:text-shopify-accent transition-colors">${escHtml(p.name)}</h4>
+                                    <span class="font-serif font-bold text-xs md:text-sm text-shopify-dark whitespace-nowrap">RM ${parseFloat(p.price).toFixed(2)}</span>
+                                </div>
+                                <p class="text-[11px] text-shopify-gray line-clamp-2 mt-1 leading-normal">${escHtml(p.details || '')}</p>
+                            </div>
+                            <div class="pt-3 flex gap-2">
+                                <button onclick="addToCart('${p.id}'); navigate('preorder');" class="flex-1 bg-[#F2EDE2] hover:bg-shopify-accent hover:text-white text-shopify-dark py-2 px-3 text-[10px] font-semibold uppercase tracking-wider rounded transition-all flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-plus"></i> Add & Pre-order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ============================================================
+        // CART
+        // ============================================================
+        function addToCart(productId) {
+            cart[productId] = (cart[productId] || 0) + 1;
+            updateCartBadges();
+        }
+
+        function removeFromCart(productId) {
+            if (!cart[productId]) return;
+            cart[productId]--;
+            if (cart[productId] === 0) delete cart[productId];
+            updateCartBadges();
+            renderPreorderCart();
+        }
+
+        function clearCart() {
+            Object.keys(cart).forEach(k => delete cart[k]);
+            byoTumblerSelected = false;
+            const cb = document.getElementById('byo-tumbler');
+            if (cb) cb.checked = false;
+            updateCartBadges();
+            renderPreorderCart();
+        }
+
+        function updateCartBadges() {
+            const total = Object.values(cart).reduce((s, q) => s + q, 0);
+            const badge = document.getElementById('cart-badge');
+            const navCount = document.getElementById('nav-cart-count');
+            if (total > 0) {
+                badge.innerText = total;
+                badge.classList.remove('hidden');
+                navCount.innerText = `(${total})`;
+            } else {
+                badge.classList.add('hidden');
+                navCount.innerText = '';
+            }
+        }
+
+        function toggleByoTumbler() {
+            const cb = document.getElementById('byo-tumbler');
+            byoTumblerSelected = cb ? cb.checked : false;
+            renderPreorderCart();
+        }
+
+        // ============================================================
+        // RENDER PREORDER CART
+        // ============================================================
+        function renderPreorderCart() {
+            const listEl = document.getElementById('cart-items-list');
+            if (!listEl) return;
+
+            const itemKeys = Object.keys(cart);
+            let total = 0, beverageQty = 0;
+
+            if (itemKeys.length === 0) {
+                listEl.innerHTML = `
+                    <div class="py-8 text-center text-shopify-gray space-y-2">
+                        <i class="fa-solid fa-shopping-bag text-3xl text-shopify-border"></i>
+                        <p class="text-xs">Your scheduler cart is empty.</p>
+                        <button onclick="navigate('shop')" class="text-xs text-shopify-accent underline tracking-wider font-semibold uppercase">Browse Menu &rarr;</button>
+                    </div>`;
+                document.getElementById('byo-section').classList.add('hidden');
+                document.getElementById('discount-row').classList.add('hidden');
+                document.getElementById('cart-total-price').innerText = 'RM 0.00';
+                return;
+            }
+
+            listEl.innerHTML = '';
+            itemKeys.forEach(prodId => {
+                const p = products.find(x => x.id === prodId);
+                if (!p) return;
+                const qty = cart[prodId];
+                const cost = p.price * qty;
+                total += cost;
+                if (p.category === 'coffee' || p.category === 'combos') beverageQty += qty;
+
+                listEl.innerHTML += `
+                    <div class="flex items-center justify-between py-4 gap-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${p.images[0] || ''}" alt="${escHtml(p.name)}" class="w-12 h-12 rounded object-cover border border-shopify-border" onerror="this.src='https://placehold.co/48x48/F2EDE2/7D6E57?text=?'">
+                            <div>
+                                <h4 class="font-semibold text-xs text-shopify-dark">${escHtml(p.name)}</h4>
+                                <span class="text-[10px] text-shopify-gray">RM ${parseFloat(p.price).toFixed(2)} each</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex border border-shopify-border rounded overflow-hidden">
+                                <button onclick="removeFromCart('${prodId}')" class="px-2 py-1 bg-neutral-100 hover:bg-neutral-200 text-xs">-</button>
+                                <span class="px-3 py-1 text-xs font-semibold bg-white">${qty}</span>
+                                <button onclick="addToCart('${prodId}'); renderPreorderCart();" class="px-2 py-1 bg-neutral-100 hover:bg-neutral-200 text-xs">+</button>
+                            </div>
+                            <span class="font-bold text-xs w-16 text-right">RM ${cost.toFixed(2)}</span>
+                        </div>
+                    </div>`;
+            });
+
+            // BYO tumbler section
+            const byoSec = document.getElementById('byo-section');
+            const discountRow = document.getElementById('discount-row');
+            let discount = 0;
+
+            if (beverageQty > 0) {
+                byoSec.classList.remove('hidden');
+                if (byoTumblerSelected) {
+                    discount = beverageQty * 0.50;
+                    discountRow.classList.remove('hidden');
+                    document.getElementById('discount-count').innerText = beverageQty;
+                    document.getElementById('discount-amount').innerText = `-RM ${discount.toFixed(2)}`;
+                } else {
+                    discountRow.classList.add('hidden');
+                }
+            } else {
+                byoSec.classList.add('hidden');
+                discountRow.classList.add('hidden');
+                byoTumblerSelected = false;
+                const cb = document.getElementById('byo-tumbler');
+                if (cb) cb.checked = false;
+            }
+
+            document.getElementById('cart-total-price').innerText = `RM ${Math.max(0, total - discount).toFixed(2)}`;
+        }
+
+        // ============================================================
+        // WHATSAPP ORDER GENERATOR
+        // ============================================================
+        function generateWhatsAppOrder() {
+            const errorBox = document.getElementById('form-error-msg');
+            const errorText = document.getElementById('form-error-text');
+
+            // Validation
+            const name  = document.getElementById('cust-name').value.trim();
+            const car   = document.getElementById('cust-car').value.trim();
+            const plate = document.getElementById('cust-plate').value.trim();
+            const time  = document.getElementById('pickup-time').value;
+
+            let errors = [];
+            if (Object.keys(cart).length === 0) errors.push('Add at least one item to your cart.');
+            if (!name)  errors.push('Enter your name.');
+            if (!car)   errors.push('Enter your vehicle model & colour.');
+            if (!plate) errors.push('Enter your license plate.');
+            if (!time)  errors.push('Choose a pickup time.');
+
+            if (errors.length > 0) {
+                errorText.innerText = errors.join(' ');
+                errorBox.classList.add('show');
+                errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            errorBox.classList.remove('show');
+
+            // Build message
+            let orderLines = '', total = 0, beverageQty = 0;
+            Object.keys(cart).forEach(prodId => {
+                const p = products.find(x => x.id === prodId);
+                const qty = cart[prodId];
+                const cost = p.price * qty;
+                total += cost;
+                orderLines += `• ${qty}x ${p.name} (RM ${cost.toFixed(2)})\n`;
+                if (p.category === 'coffee' || p.category === 'combos') beverageQty += qty;
+            });
+
+            let ecoLine = '', discount = 0;
+            if (byoTumblerSelected && beverageQty > 0) {
+                discount = beverageQty * 0.50;
+                ecoLine = `\n*🌍 ECO-INITIATIVE (BYO TUMBLER):*\n• Bringing clean tumbler(s) for ${beverageQty} cup(s).\n• Eco-discount applied: -RM ${discount.toFixed(2)}\n`;
+            }
+
+            const finalTotal = Math.max(0, total - discount);
+            const msg = `Hi BŌOT Coffee & Bites! I'd like to schedule a pre-order:\n\n*🛒 MY ORDER:*\n${orderLines}${ecoLine}\n*Total amount:* RM ${finalTotal.toFixed(2)}\n\n*🚗 GRAB DETAILS (Mon-Fri 6:00-7:00 AM):*\n• Name: ${name}\n• Car Model & Color: ${car}\n• License Plate: ${plate}\n• Target Pickup Time: ${time}\n• Pickup Location: In front of Bila Bila Mart, Derica Residence\n\nPlease share your DuitNow QR for transfer!`;
+
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        // ============================================================
+        // UTILITY
+        // ============================================================
+        function escHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        window.onload = async function () {
+            const initialPage = window.location.hash.replace('#', '') || 'shop';
+            navigate(initialPage);
+            await loadProducts();
+        };
+    </script>
+</body>
+</html>
