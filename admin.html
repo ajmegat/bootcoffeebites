@@ -254,8 +254,8 @@
         // ============================================================
         var SUPABASE_URL      = 'https://ajmegat.supabase.co';
         var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzbnFqaGR1ZWNxaWRqZGxndXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDI5MjQsImV4cCI6MjA5NzMxODkyNH0.yJ9Q280RZHCgRztYKLK8gW53KYFobUVQ-abLcadyFsg';
-        var STORAGE_BUCKET    = 'product-images';
-        var ADMIN_SYSTEM_EMAIL = 'jvcgzb@gmail.com';
+        var STORAGE_BUCKET = 'product-images';
+        var ADMIN_PASSWORD = 'fijsub-mixqoT-varfu4';
 
         var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -269,18 +269,13 @@
         var existingImageUrls = [];
 
         // ============================================================
-        // AUTH
+        // AUTH — simple password gate
         // ============================================================
-        async function checkSession() {
-            try {
-                var result = await db.auth.getSession();
-                if (result.data.session) showDashboard();
-            } catch (err) {
-                console.warn('Session check failed:', err.message);
-            }
+        function checkSession() {
+            if (sessionStorage.getItem('admin_auth') === '1') showDashboard();
         }
 
-        async function doLogin() {
+        function doLogin() {
             var pass     = document.getElementById('login-password').value;
             var errEl    = document.getElementById('login-error');
             var loginBtn = document.querySelector('#screen-login button');
@@ -293,30 +288,20 @@
                 return;
             }
 
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Unlocking...';
-
-            var result = await db.auth.signInWithPassword({
-                email: ADMIN_SYSTEM_EMAIL,
-                password: 'fijsub-mixqoT-varfu4'
-            });
-
-            if (result.error) {
+            if (pass === ADMIN_PASSWORD) {
+                sessionStorage.setItem('admin_auth', '1');
+                showDashboard();
+            } else {
                 errEl.innerText = 'Incorrect password. Please try again.';
                 errEl.classList.remove('hidden');
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = 'Unlock Dashboard';
-            } else {
-                showDashboard();
             }
         }
 
-        async function doLogout() {
-            await db.auth.signOut();
+        function doLogout() {
+            sessionStorage.removeItem('admin_auth');
             document.getElementById('login-password').value = '';
-            var loginBtn = document.querySelector('#screen-login button');
-            loginBtn.disabled = false;
-            loginBtn.innerHTML = 'Unlock Dashboard';
             document.getElementById('screen-dashboard').classList.add('hidden');
             document.getElementById('screen-login').classList.remove('hidden');
         }
